@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>DRAM_0_EN</title>
+  <style>
+    body { max-width: 880px; margin: 40px auto; line-height: 1.65; font-family: system-ui, sans-serif; }
+    pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    img { max-width: 100%; height: auto; }
+    h1,h2,h3 { line-height: 1.3; }
+    hr { margin: 2rem 0; }
+  </style>
+</head>
+<body>
+<main>
+<h1>DRAM Memory Optimization: Bank Interleaving and Burst Mode</h1>
+<h2>1. Introduction</h2>
+<p>There are three main ways to improve DRAM performance:  </p>
+<ol>
+<li>Increase the memory bus width  </li>
+<li>Increase the memory operating clock  </li>
+<li>Apply <strong>Interleaving</strong> to maximize effective bandwidth</li>
+</ol>
+<p>However, each of these approaches has limitations:  </p>
+<ul>
+<li><strong>Bus width expansion</strong>: increases pin count, board complexity, cost, and power consumption.  </li>
+<li><strong>Clock scaling</strong>: limited by DRAM specifications, power, and thermal constraints.  </li>
+<li><strong>Interleaving</strong>: not a silver bullet; efficiency depends on controller design and access patterns.</li>
+</ul>
+<p>Therefore, simply increasing bus width or clock frequency is insufficient. In real systems, <strong>Bank Interleaving</strong> and <strong>Burst Mode</strong> are the key techniques that determine practical memory performance.  </p>
+<hr>
+<h2>2. Memory Data Bus Bandwidth</h2>
+<p>The most intuitive way to improve performance is to widen the memory data bus.  </p>
+<p><strong>Example configurations:</strong>  </p>
+<ul>
+<li>8-bit DRAM × 4 = 32-bit  </li>
+<li>16-bit DRAM × 2 = 32-bit  </li>
+<li>32-bit DRAM × 1 = 32-bit  </li>
+<li>16-bit DRAM × 1 (supported by some TI SoCs)</li>
+</ul>
+<p>It may appear that “a wider bus always means higher performance,” but this assumption is misleading:  </p>
+<ul>
+<li>Some TI SoCs expose a 32-bit external interface, but internally only 16-bit is used → no real benefit.  </li>
+<li>Wider buses increase power consumption, cost, and PCB area.</li>
+</ul>
+<p>Thus, the <strong>actual internal bus width supported by the SoC</strong> must always be verified. Misinterpreting this can result in unnecessary hardware complexity without real performance gain.  </p>
+<p>📌 Reference: <em>AM437x / AM335x RAM Interface – Data Bus</em><br>👉 <a href="https://ahyuo79.blogspot.com/2016/08/am437x-am335x-ram-interface.html">https://ahyuo79.blogspot.com/2016/08/am437x-am335x-ram-interface.html</a>  </p>
+<hr>
+<h2>3. Bank Interleaving</h2>
+<p>Bank Interleaving distributes memory accesses across multiple banks in DRAM.  </p>
+<p>Without interleaving, each access requires <strong>Row Activate → Read → Precharge</strong>, leaving the bus idle during precharge. With interleaving, accesses alternate across <strong>Bank0 → Bank1 → Bank2 …</strong>, so while one bank is in precharge, another bank can serve data. This greatly improves <strong>effective bandwidth utilization</strong>.  </p>
+<p><img src="https://en.wikipedia.org/wiki/Interleaved_memory#/media/File:Interleaving.gif" alt="Bank Interleaving Diagram"><br><em>Source: Wikipedia – Interleaved Memory</em>  </p>
+<p><strong>Advantages</strong>  </p>
+<ul>
+<li>Maximizes memory bus utilization  </li>
+<li>Hides row activation latency  </li>
+<li>Mitigates CPU–DRAM performance gap</li>
+</ul>
+<p><strong>Disadvantages</strong>  </p>
+<ul>
+<li>Simply adding more banks is not always beneficial; larger bank depth may degrade cost/performance balance.  </li>
+<li>Efficiency depends on memory controller mapping and actual access patterns.</li>
+</ul>
+<hr>
+<h3>3.1 Bank Interleaving in TI SoCs</h3>
+<h4>Sitara (AM335x, AM437x)</h4>
+<p>TI SoCs provide Bank Interleaving through the <strong>EMIF (External Memory Interface)</strong>.  </p>
+<ul>
+<li>The level of interleaving depends on address bit mapping.  <ul>
+<li>Example: <strong>IBANK 3-bit + EBANK 1-bit → 16-bank interleaving</strong>  </li>
+<li>Example: <strong>IBANK 2-bit + EBANK 1-bit → 8-bank interleaving</strong></li>
+</ul>
+</li>
+</ul>
+<p>While performance does not increase linearly with the number of banks, enabling interleaving yields clear efficiency improvements.  </p>
+<h4>DaVinci (DM385)</h4>
+<p>DaVinci SoCs like the DM385 target multimedia workloads (video encoding/decoding), where memory bandwidth is critical.  </p>
+<ul>
+<li>Merely increasing DDR frequency is insufficient.  </li>
+<li>Instead, <strong>Bank Interleaving</strong> and tuning of memory parameters are essential for performance.</li>
+</ul>
+<p>Key parameters include:  </p>
+<ul>
+<li><strong>RSIZE</strong>: Row address size  </li>
+<li><strong>PAGESIZE</strong>: Column address size  </li>
+<li><strong>IBANK</strong>: Number of banks per DRAM  </li>
+<li><strong>EBANK</strong>: Number of DRAM devices</li>
+</ul>
+<p>The way these parameters are mapped determines interleaving capability. Proper configuration improves efficiency and bandwidth even at the same clock speed.  </p>
+<hr>
+<h3>3.2 Burst Mode and Prefetch Buffers</h3>
+<p><strong>Burst Mode</strong> defines how many data words are transferred per read/write command. It has existed since early SDR/DDR, but prefetch buffer sizes have evolved across generations:  </p>
+<table>
+<thead>
+<tr>
+<th>Generation</th>
+<th>Prefetch</th>
+<th>Default Burst Length</th>
+<th>Burst Chop Support</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DDR</td>
+<td>2n</td>
+<td>2, 4, 8</td>
+<td>None</td>
+</tr>
+<tr>
+<td>DDR2</td>
+<td>4n</td>
+<td>4, 8</td>
+<td>None</td>
+</tr>
+<tr>
+<td>DDR3</td>
+<td>8n</td>
+<td>8</td>
+<td><strong>BC4 (4)</strong></td>
+</tr>
+<tr>
+<td>DDR4</td>
+<td>8n</td>
+<td>8</td>
+<td><strong>BC4 (4)</strong></td>
+</tr>
+<tr>
+<td>DDR5</td>
+<td>16n</td>
+<td>16</td>
+<td><strong>BC8 (8)</strong></td>
+</tr>
+</tbody></table>
+<h4>Burst Chop (BC)</h4>
+<ul>
+<li>Introduced in <strong>DDR3</strong>.  </li>
+<li>Transition from DDR2 → DDR3 increased prefetch from 4n to 8n, with a fixed <strong>BL8 (8-word burst)</strong>.  </li>
+<li>DDR2’s BL4 mode could no longer be supported directly, so <strong>BC4</strong> was introduced.</li>
+</ul>
+<p><strong>Operation:</strong>  </p>
+<ul>
+<li><strong>BC4</strong>: In a BL8 transfer, the first 4 words are transmitted, the remaining 4 are <strong>masked</strong>.</li>
+</ul>
+<pre><code>BL8 : [D0][D1][D2][D3][D4][D5][D6][D7]
+BC4 : [D0][D1][D2][D3][ -- Mask -- ]
+</code></pre>
+<ul>
+<li><strong>BC8</strong> (DDR5): In a BL16 transfer, the first 8 words are transmitted, the remaining 8 are <strong>masked</strong>.</li>
+</ul>
+<p>Thus, Burst Chop is not a fundamentally new mechanism, but rather a compatibility feature to emulate shorter burst lengths within longer burst architectures.  </p>
+<p>📌 References:  </p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Prefetch_buffer">Prefetch buffer – Wikipedia</a>  </li>
+<li><a href="http://www.rampedia.com/index.php/define-burst_chop">Burst Chop – Rampedia</a></li>
+</ul>
+<hr>
+<h2>4. Channel Interleaving</h2>
+<p>If Bank Interleaving is an internal DRAM optimization, Channel Interleaving is an <strong>external SoC-level technique</strong>.  </p>
+<p><strong>Concept</strong>  </p>
+<ul>
+<li>Multiple EMIFs are connected to the SoC’s internal OCP bus.  </li>
+<li>Each EMIF provides an independent DRAM channel, enabling parallel access.  </li>
+<li>High-end TI SoCs provide <strong>dual EMIF (2×32-bit)</strong> for 64-bit DDR3 interfaces.</li>
+</ul>
+<p><strong>Examples</strong>  </p>
+<ul>
+<li><strong>AM335x, AM43xx</strong>: Single EMIF → Channel Interleaving not possible  </li>
+<li><strong>AM57x, DM816x</strong>: Dual EMIF → Channel Interleaving supported</li>
+</ul>
+<p>While effective, Channel Interleaving comes with costs: <strong>increased SoC price, more package pins, and higher power consumption.</strong> Thus, it is generally only available in <strong>high-end multimedia/industrial SoCs</strong>, not in mainstream embedded devices.  </p>
+<hr>
+<h2>Conclusion</h2>
+<ul>
+<li><strong>Bus bandwidth</strong>: straightforward but must confirm actual SoC support.  </li>
+<li><strong>Bank Interleaving</strong>: a critical optimization available even in single-EMIF SoCs.  </li>
+<li><strong>Burst Mode / Burst Chop</strong>: key evolutionary features across DDR generations, ensuring shorter burst compatibility.  </li>
+<li><strong>Channel Interleaving</strong>: powerful but limited to high-end SoCs due to cost, pin, and power trade-offs.</li>
+</ul>
+<p>For most SoCs, optimization revolves around <strong>Bus bandwidth and Bank Interleaving</strong>, while Channel Interleaving remains an advanced option for premium systems.  </p>
+<hr>
+<h2>References</h2>
+<p><strong>Original (Korean):</strong>  </p>
+<ul>
+<li><em>DRAM Memory 최적화: Bank Interleaving과 Burst Mode</em><br><a href="https://ahyuo79.blogspot.com/2013/11/sdram-ddr.html">https://ahyuo79.blogspot.com/2013/11/sdram-ddr.html</a></li>
+</ul>
+<p><strong>Related (Korean):</strong>  </p>
+<ul>
+<li><em>RAM/DRAM – Category Overview</em><br><a href="https://ahyuo79.blogspot.com/search/label/RAM-DRAM">https://ahyuo79.blogspot.com/search/label/RAM-DRAM</a></li>
+</ul>
+<p><strong>External (English):</strong>  </p>
+<ul>
+<li><em>Bank Interleaving – Wikipedia</em><br><a href="https://en.wikipedia.org/wiki/Interleaved_memory">https://en.wikipedia.org/wiki/Interleaved_memory</a>  </li>
+<li><em>Prefetch buffer – Wikipedia</em><br><a href="https://en.wikipedia.org/wiki/Prefetch_buffer">https://en.wikipedia.org/wiki/Prefetch_buffer</a>  </li>
+<li><em>Burst Chop – Rampedia</em><br><a href="http://www.rampedia.com/index.php/define-burst_chop">http://www.rampedia.com/index.php/define-burst_chop</a></li>
+</ul>
+<hr>
+<p><em>This article is based on my original Korean blog notes, with English writing refined with the help of ChatGPT.</em>  </p>
+
+</main>
+</body>
+</html>
