@@ -89,6 +89,9 @@
 <li>Simply adding more banks is not always beneficial; larger bank depth may degrade cost/performance balance.  </li>
 <li>Efficiency depends on memory controller mapping and actual access patterns.</li>
 </ul>
+<br/>
+
+<p>TEST Code</p>
 <pre><code>from transformers import pipeline
 from PIL import Image, ImageDraw, ImageFont
 
@@ -146,9 +149,13 @@ with Image.open(&quot;street.jpg&quot;) as im:
  # Done
  print(&quot;Done!&quot;)
 </code></pre>
+<br/>
+
 <hr>
 <h3>3.1 Bank Interleaving in TI SoCs</h3>
 <h4>Sitara (AM335x, AM437x)</h4>
+<br/>
+
 <p>TI SoCs provide Bank Interleaving through the <strong>EMIF (External Memory Interface)</strong>.  </p>
 <ul>
 <li>The level of interleaving depends on address bit mapping.  <ul>
@@ -175,6 +182,8 @@ with Image.open(&quot;street.jpg&quot;) as im:
 <hr>
 <h3>3.2 Burst Mode and Prefetch Buffers</h3>
 <p><strong>Burst Mode</strong> defines how many data words are transferred per read/write command. It has existed since early SDR/DDR, but prefetch buffer sizes have evolved across generations:  </p>
+<br/>
+
 <table>
 <thead>
 <tr>
@@ -215,6 +224,8 @@ with Image.open(&quot;street.jpg&quot;) as im:
 <td><strong>BC8 (8)</strong></td>
 </tr>
 </tbody></table>
+<br/>
+
 <h4>Burst Chop (BC)</h4>
 <ul>
 <li>Introduced in <strong>DDR3</strong>.  </li>
