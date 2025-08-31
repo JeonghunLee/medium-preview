@@ -41,6 +41,7 @@
 <body>
 <main>
 <h1>DRAM Memory Optimization: Bank Interleaving and Burst Mode</h1>
+<p>Real-time CSI processing and range estimation using ESP-DSP.</p>
 <h2>1. Introduction-1</h2>
 <p>There are three main ways to improve DRAM performance:  </p>
 <ol>
@@ -76,7 +77,7 @@
 <h2>3. Bank Interleaving</h2>
 <p>Bank Interleaving distributes memory accesses across multiple banks in DRAM.  </p>
 <p>Without interleaving, each access requires <strong>Row Activate → Read → Precharge</strong>, leaving the bus idle during precharge. With interleaving, accesses alternate across <strong>Bank0 → Bank1 → Bank2 …</strong>, so while one bank is in precharge, another bank can serve data. This greatly improves <strong>effective bandwidth utilization</strong>.  </p>
-<p><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Interleaving.gif" alt="Bank Interleaving Diagram" loading="lazy" referrerpolicy="no-referrer" /><br><em>Source: Wikipedia – Interleaved Memory1</em><br><img src="DRAM_0_EN_00.gif" alt="Bank Interleaving Diagram" loading="lazy" referrerpolicy="no-referrer" /><br><em>Source: Wikipedia – Interleaved Memory2</em>  </p>
+<p><figure style="margin:1em 0;text-align:center;"><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Interleaving.gif" alt="Bank Interleaving Diagram" loading="lazy" referrerpolicy="no-referrer" /><figcaption style="font-size:0.85em;color:#666;text-align:center;margin-top:4px;">Bank Interleaving Diagram. Source | Image by author.</figcaption></figure><br><em>Source: Wikipedia – Interleaved Memory1</em><br><figure style="margin:1em 0;text-align:center;"><img src="DRAM_0_EN_00.gif" alt="Bank Interleaving Diagram" loading="lazy" referrerpolicy="no-referrer" /><figcaption style="font-size:0.85em;color:#666;text-align:center;margin-top:4px;">Bank Interleaving Diagram. Source | Image by author.</figcaption></figure><br><em>Source: Wikipedia – Interleaved Memory2</em>  </p>
 <p><strong>Advantages</strong>  </p>
 <ul>
 <li>Maximizes memory bus utilization  </li>
